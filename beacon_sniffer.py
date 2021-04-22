@@ -21,9 +21,8 @@ class BeaconSniffer:
     
     def get_beacon_data(self):
         try:
-            print("foo")
             proc = subprocess.Popen(['hcidump', '-R', 'hci'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            proc.communicate(timeout=5)
+            proc.communicate(timeout=2)
         except subprocess.TimeoutExpired:
             proc.kill()
             data, errs = proc.communicate()

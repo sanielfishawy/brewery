@@ -54,8 +54,14 @@ class TiltData:
     def get_major(self):
         return int(self.raw_data[-12:-8], 16)
     
+    def get_temp(self):
+        return self.get_major() / 10.0
+    
     def get_minor(self):
         return int(self.raw_data[-8:-4], 16)
+    
+    def get_specific_gravity(self): 
+        return round(self.get_minor() / 10000.0, 3)
     
     def get_rssi(self):
         return - (256 - int(self.raw_data[-2:], 16))

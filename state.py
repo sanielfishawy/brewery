@@ -19,16 +19,31 @@ class State:
         self.worts = []
         for id in range(self.__class__.NUM_WORTS):
             self.worts.append(Wort(id=id, tilt_color=self.__class__.TILT_COLORS[id]))
+    
+    @classmethod
+    def get_instance(cls):
+        if not cls._instance:
+            cls._instance = cls()
+        return cls._instance
         
     def get_wort_by_id(self, id):
         result = None
         for wort in self.worts:
             if wort.id == id:
                 result = wort
-        return wort
+        return result
     
     def get_wort_by_tilt_color(self, color):
         result = None
+        for wort in self.worts:
+            if wort.tilt_color == color:
+                result = wort
+        return result
+
+    def print_state(self):
+        for wort in self.worts:
+            print(f'WORT {wort.id}')
+            print(wort.get_obj())
 
 class Wort:
     ID = 'id'
@@ -40,6 +55,7 @@ class Wort:
     SPECIFIC_GRAVITY = 'specific_gravity'
     HEATER_SHELBY_ADDR = 'heater_shelby_addr'
     COOLER_SHELBY_ADDR = 'cooler_shelby_addr'
+    RSSI = 'rssi'
 
     def __init__(
         self,
@@ -52,6 +68,7 @@ class Wort:
         specific_gravity=None,
         heater_shelby_addr=None,
         cooler_shelby_addr=None,
+        rssi=None,
        ):
 
        self.id = id
@@ -63,6 +80,7 @@ class Wort:
        self.specific_gravity = specific_gravity
        self.heater_shelby_addr = heater_shelby_addr
        self.cooler_shelby_addr = cooler_shelby_addr
+       self.rssi = rssi
     
     def get_obj(self):
         return {
@@ -75,6 +93,7 @@ class Wort:
             self.__class__.SPECIFIC_GRAVITY: self.specific_gravity,
             self.__class__.HEATER_SHELBY_ADDR: self.heater_shelby_addr,
             self.__class__.COOLER_SHELBY_ADDR: self.cooler_shelby_addr,
+            self.__class__.RSSI: self.rssi,
         }
 
 
