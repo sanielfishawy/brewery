@@ -1,3 +1,6 @@
+import yaml
+import logging
+
 class State:
     _instance = None
     NUM_WORTS = 4
@@ -13,9 +16,16 @@ class State:
 
     TILT_COLORS = [BLACK, PURPLE, ORANGE, BLUE]
 
+    STATE_FILE = 'state.yml'
+
     def __init__(self):
         if self.__class__._instance:
             raise 'State is a singleton. Use get_instance()'
+
+        if not self.restore_state():
+            self.init_state()
+    
+    def init_state(self):
         self.worts = []
         for id in range(self.__class__.NUM_WORTS):
             self.worts.append(Wort(id=id, tilt_color=self.__class__.TILT_COLORS[id]))
@@ -44,6 +54,30 @@ class State:
         for wort in self.worts:
             print(f'WORT {wort.id}')
             print(wort.get_obj())
+    
+    def restore_state(self):
+        try:
+            with open(self.__class__.STATE_FILE) as file:
+                state = yaml.load(file, Loader=yaml.FullLoader)
+        except FileNotFoundError:
+            logging.info('State file not found')
+            return False
+
+        self.worts = []
+        for wort in state:
+            self.worts.append(Wort().set_with_obj(wort))
+
+        return True
+
+    def save_state(self):
+        with open(self.__class__.STATE_FILE, 'w') as file:
+            yaml.dump(self.get_obj(), file)
+
+    def get_obj(self):
+        result = []
+        for wort in self.worts:
+            result.append(wort.get_obj())
+        return result
 
 class Wort:
     ID = 'id'
@@ -95,7 +129,32 @@ class Wort:
             self.__class__.COOLER_SHELBY_ADDR: self.cooler_shelby_addr,
             self.__class__.RSSI: self.rssi,
         }
-
-
     
+    def set_with_obj(self, obj):
+        if self.__class__.ID in obj:
+            self.id = obj[self.__class__.ID]
+        if self.__class__.NAME in obj:
+            self.name = obj[self.__class__.NAME]
+        if self.__class__.TILT_COLOR in obj:
+            self.tilt_color = obj[self.__class__.TILT_COLOR]
+        if self.__class__.TEMP in obj:
+            self.temp = obj[self.__class__.TEMP]
+        if self.__class__.SET_TEMP in obj:
+            self.set_temp = obj[self.__class__.SET_TEMP]
+        if self.__class__.HYSTERESIS in obj:
+            self.hysteresis = obj[self.__class__.HYSTERESIS]
+        if self.__class__.SPECIFIC_GRAVITY in obj:
+            self.specific_gravity = obj[self.__class__.SPECIFIC_GRAVITY]
+        if self.HEATER_SHELBY_ADDR in obj:
+            self.heater_shelby_addr = obj[self.__class__.HEATER_SHELBY_ADDR]
+        if self.COOLER_SHELBY_ADDR in obj:
+            self.cooler_shelby_addr = obj[self.__class__.COOLER_SHELBY_ADDR]
+        if self.__class__.RSSI in obj:
+            self.rssi = obj[self.__class__.RSSI]
+        return self
+
+if __name__ == '__main__':
+    logging.basicConfig(format='%(levelname)s: %(threadName)s %(module)s %(message)s', level=logging.DEBUG)
+    State.get_instance()
+    State.get_instance().print_state()
 
