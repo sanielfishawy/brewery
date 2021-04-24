@@ -18,14 +18,28 @@ class State:
 
     STATE_FILE = 'state.yml'
 
+    WORTS_KEY = 'worts'
+    CHILLER_SHELLY_ADDR_KEY = 'chiller_shelly_addr'
+
     def __init__(self):
         if self.__class__._instance:
             raise 'State is a singleton. Use get_instance()'
 
         if not self.restore_state():
             self.init_state()
+        
+        self.callbacks = []
     
+    def add_callback(self, callback):
+        self.callbacks.append(callback)
+    
+    def notify_callbacks(self):
+        for cb in self. callbacks:
+            cb()
+
     def init_state(self):
+        self.chiller_shelly_addr = ''
+
         self.worts = []
         for id in range(self.__class__.NUM_WORTS):
             self.worts.append(Wort(id=id, tilt_color=self.__class__.TILT_COLORS[id]))
@@ -36,6 +50,16 @@ class State:
             cls._instance = cls()
         return cls._instance
         
+    def set_state(self, state):
+        self.worts = []
+        for wort in state[self.__class__.WORTS_KEY]:
+            self.worts.append(Wort().set_with_obj(wort))
+        
+        self.chiller_shelly_addr = state[self.__class__.CHILLER_SHELLY_ADDR_KEY]
+
+    def get_worts(self):
+        return self.worts
+
     def get_wort_by_id(self, id):
         result = None
         for wort in self.worts:
@@ -49,8 +73,33 @@ class State:
             if wort.tilt_color == color:
                 result = wort
         return result
+    
+    def set_temp_with_color(self, color, temp):
+        wort = self.get_wort_by_tilt_color(color)
+        if not wort:
+            logging.warning(f'Got and update for {color} tilt. But there isnt a {color} tilt setup.')
+        else:
+            wort.temp = temp
+            self.save_state()
+
+    def set_specific_gravity_with_color(self, color, specific_gravity):
+        wort = self.get_wort_by_tilt_color(color)
+        if not wort:
+            logging.warning(f'Got and update for {color} tilt. But there isnt a {color} tilt setup.')
+        else:
+            wort.specific_gravity = specific_gravity
+            self.save_state()
+
+    def set_rssi_with_color(self, color, rssi):
+        wort = self.get_wort_by_tilt_color(color)
+        if not wort:
+            logging.warning(f'Got and update for {color} tilt. But there isnt a {color} tilt setup.')
+        else:
+            wort.rssi = rssi
+            self.save_state()
 
     def print_state(self):
+        print(f'chller_sh_addr: {self.chiller_shelly_addr}')
         for wort in self.worts:
             print(f'WORT {wort.id}')
             print(wort.get_obj())
@@ -63,21 +112,28 @@ class State:
             logging.info('State file not found')
             return False
 
-        self.worts = []
-        for wort in state:
-            self.worts.append(Wort().set_with_obj(wort))
-
+        self.set_state(state)
         return True
 
     def save_state(self):
         with open(self.__class__.STATE_FILE, 'w') as file:
-            yaml.dump(self.get_obj(), file)
+            yaml.dump(self.get_state_obj(), file)
+        self.notify_callbacks()
 
-    def get_obj(self):
+    def get_worts_obj(self):
         result = []
         for wort in self.worts:
             result.append(wort.get_obj())
         return result
+    
+    def get_state_obj(self):
+        return (
+            {
+                self.__class__.CHILLER_SHELLY_ADDR_KEY: self.chiller_shelly_addr,
+                self.__class__.WORTS_KEY: self.get_worts_obj()
+            }
+        )
+
 
 class Wort:
     ID = 'id'
@@ -86,10 +142,15 @@ class Wort:
     TEMP = 'temp'
     SET_TEMP = 'set_temp'
     HYSTERESIS = 'hysteresis'
+    STATUS = 'status'
     SPECIFIC_GRAVITY = 'specific_gravity'
-    HEATER_SHELBY_ADDR = 'heater_shelby_addr'
-    COOLER_SHELBY_ADDR = 'cooler_shelby_addr'
+    HEATER_SHELLY_ADDR = 'heater_shelly_addr'
+    COOLER_SHELLY_ADDR = 'cooler_shelly_addr'
     RSSI = 'rssi'
+
+    STATUS_HEAT = 'heat'
+    STATUS_COOL = 'cool'
+    STATUS_OFF = 'off'
 
     def __init__(
         self,
@@ -100,21 +161,22 @@ class Wort:
         set_temp=None,
         hysteresis=None,
         specific_gravity=None,
-        heater_shelby_addr=None,
-        cooler_shelby_addr=None,
+        heater_shelly_addr=None,
+        cooler_shelly_addr=None,
         rssi=None,
        ):
 
        self.id = id
        self.name = name
        self.tilt_color = tilt_color
-       self.temp= temp
-       self.set_temp = set_temp
-       self.hysteresis = hysteresis
-       self.specific_gravity = specific_gravity
-       self.heater_shelby_addr = heater_shelby_addr
-       self.cooler_shelby_addr = cooler_shelby_addr
-       self.rssi = rssi
+       self.temp= float(temp)
+       self.set_temp = float(set_temp)
+       self.hysteresis = float(hysteresis)
+       self.status = self.__class__.STATUS_OFF
+       self.specific_gravity = float(specific_gravity)
+       self.heater_shelly_addr = heater_shelly_addr
+       self.cooler_shelly_addr = cooler_shelly_addr
+       self.rssi = int(rssi)
     
     def get_obj(self):
         return {
@@ -124,9 +186,10 @@ class Wort:
             self.__class__.TEMP: self.temp,
             self.__class__.SET_TEMP: self.set_temp,
             self.__class__.HYSTERESIS: self.hysteresis,
+            self.__class__.STATUS: self.status,
             self.__class__.SPECIFIC_GRAVITY: self.specific_gravity,
-            self.__class__.HEATER_SHELBY_ADDR: self.heater_shelby_addr,
-            self.__class__.COOLER_SHELBY_ADDR: self.cooler_shelby_addr,
+            self.__class__.HEATER_SHELLY_ADDR: self.heater_shelly_addr,
+            self.__class__.COOLER_SHELLY_ADDR: self.cooler_shelly_addr,
             self.__class__.RSSI: self.rssi,
         }
     
@@ -138,23 +201,26 @@ class Wort:
         if self.__class__.TILT_COLOR in obj:
             self.tilt_color = obj[self.__class__.TILT_COLOR]
         if self.__class__.TEMP in obj:
-            self.temp = obj[self.__class__.TEMP]
+            self.temp = float(obj[self.__class__.TEMP])
         if self.__class__.SET_TEMP in obj:
-            self.set_temp = obj[self.__class__.SET_TEMP]
+            self.set_temp = float(obj[self.__class__.SET_TEMP])
         if self.__class__.HYSTERESIS in obj:
-            self.hysteresis = obj[self.__class__.HYSTERESIS]
+            self.hysteresis = float(obj[self.__class__.HYSTERESIS])
+        if self.__class__.STATUS in obj:
+            self.status = obj[self.__class__.STATUS]
         if self.__class__.SPECIFIC_GRAVITY in obj:
-            self.specific_gravity = obj[self.__class__.SPECIFIC_GRAVITY]
-        if self.HEATER_SHELBY_ADDR in obj:
-            self.heater_shelby_addr = obj[self.__class__.HEATER_SHELBY_ADDR]
-        if self.COOLER_SHELBY_ADDR in obj:
-            self.cooler_shelby_addr = obj[self.__class__.COOLER_SHELBY_ADDR]
+            self.specific_gravity = float(obj[self.__class__.SPECIFIC_GRAVITY])
+        if self.HEATER_SHELLY_ADDR in obj:
+            self.heater_shelly_addr = obj[self.__class__.HEATER_SHELLY_ADDR]
+        if self.COOLER_SHELLY_ADDR in obj:
+            self.cooler_shelly_addr = obj[self.__class__.COOLER_SHELLY_ADDR]
         if self.__class__.RSSI in obj:
-            self.rssi = obj[self.__class__.RSSI]
+            self.rssi = int(obj[self.__class__.RSSI])
         return self
 
 if __name__ == '__main__':
     logging.basicConfig(format='%(levelname)s: %(threadName)s %(module)s %(message)s', level=logging.DEBUG)
     State.get_instance()
     State.get_instance().print_state()
+    State.get_instance().save_state()
 

@@ -1,40 +1,46 @@
-- cooler_shelby_addr: null
-  heater_shelby_addr: 'black_addr'
+chiller_shelly_addr: ''
+worts:
+- cooler_shelly_addr: null
+  heater_shelly_addr: null
   hysteresis: null
   id: 0
   name: null
   rssi: null
   set_temp: null
   specific_gravity: null
+  status: 'off'
   temp: null
   tilt_color: black
-- cooler_shelby_addr: null
-  heater_shelby_addr: null
+- cooler_shelly_addr: null
+  heater_shelly_addr: null
   hysteresis: null
   id: 1
   name: null
   rssi: null
   set_temp: null
   specific_gravity: null
+  status: 'off'
   temp: null
   tilt_color: purple
-- cooler_shelby_addr: null
-  heater_shelby_addr: null
+- cooler_shelly_addr: null
+  heater_shelly_addr: null
   hysteresis: null
   id: 2
   name: null
   rssi: null
   set_temp: null
   specific_gravity: null
+  status: 'off'
   temp: null
   tilt_color: orange
-- cooler_shelby_addr: null
-  heater_shelby_addr: null
-  hysteresis: null
+- cooler_shelly_addr: null
+  heater_shelly_addr: http
+  hysteresis: '2'
   id: 3
-  name: null
-  rssi: null
-  set_temp: null
-  specific_gravity: null
-  temp: null
+  name: WortA
+  rssi: -71
+  set_temp: '60'
+  specific_gravity: 0.866
+  status: 'off'
+  temp: 64.4
   tilt_color: blue

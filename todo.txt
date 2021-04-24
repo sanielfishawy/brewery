@@ -1,0 +1,8 @@
+- db for rssi
+- turn on heat and cool
+    - subscribe to state_changes
+    - Add status to client
+- alarm if last update was too long ago
+- show last update time
+- make colors a pulldown
+- add errors and warning state
