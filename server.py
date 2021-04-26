@@ -50,5 +50,5 @@ def getObjectFromRequest(request):
     return json.loads(request.data.decode())
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO, format='%(levelname)s %(threadName)s %(modeule)s %(message)s',)
+    logging.basicConfig(level=logging.DEBUG, format='%(levelname)s %(threadName)s %(module)s %(message)s',)
     app.run(host= HOST, debug=True, port=PORT)

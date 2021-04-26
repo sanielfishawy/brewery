@@ -1,3 +1,5 @@
+import sys
+import logging
 import subprocess
 from threading import Thread
 import time
@@ -26,6 +28,10 @@ class BeaconSniffer:
         except subprocess.TimeoutExpired:
             proc.kill()
             data, errs = proc.communicate()
+        except:
+            logging.error(f'get_beacon_data uncaught exception {sys.exc_info()[0]}')
+            raise
+            
         data = data.decode().lower().split('\n>')[2:]
         data_nw = []
         for d in data:
@@ -36,4 +42,4 @@ class BeaconSniffer:
 class LeScan(Thread):
     def run(self):
         subprocess.run(['hcitool', 'lescan', '--duplicates'], stdout=subprocess.DEVNULL)
-        print('hcitool lescan started')
+        logging.info('hcitool lescan started')
